@@ -63,14 +63,6 @@
 
 (defrecord StateMachine [state machine])
 
-(def ^{:private true
-       :doc "A global registry of state machines."}
-  registry (atom {}))
-
-(defn by-name [n]
-  "Returns a registered state machine for a given name."
-  (@registry n))
-
 (defn clone [sm & [initial]]
   "Clone a state machine, resetting all internal state."
   (assoc sm :state
@@ -79,15 +71,12 @@
 
 (defn machine [n & {:keys [debug] :or {debug true}}]
   "Create a new named state machine."
-  {:pre [(keyword? n)
-         (nil? (@registry n))]}
+  {:pre [(keyword? n)]}
   (let [m (atom {:debug debug
                  :name (name n)
                  :states {}
-                 :events {}})
-        sm (clone (StateMachine. nil m))]
-    (swap! registry assoc n sm)
-    sm))
+                 :events {}})]
+        (clone (StateMachine. nil m))))
 
 (defn watch [{:keys [state] :as sm} f]
   "Watch state changes in a given machine instance."
