@@ -83,9 +83,11 @@
     (swap! registry assoc n sm)
     sm))
 
-(defn clone [sm]
+(defn clone [sm & initial]
   "Clone a state machine, resetting all internal state."
-  (assoc sm :state (atom {:current #{}})))
+  (assoc sm :state
+         ;; Hook-in any additional options given.
+         (atom (assoc initial :current #{}))))
 
 (defn watch [{:keys [state]} f]
   "Watch state changes in a given machine instance."
