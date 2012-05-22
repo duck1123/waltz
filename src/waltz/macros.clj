@@ -1,22 +1,26 @@
 (ns waltz.macros)
 
+(defn- state* []
+  {:in []
+   :out []
+   :constraints []})
+
 (defmacro defstate
-  [sm name & body]
-  `(let [s# (-> (waltz.state/state*)
-                ~@body)]
-     (waltz.state/add-state ~sm ~name s#)))
+  [m name & body]
+  `(let [s# (-> ~(state*) ~@body)]
+     (waltz.state/add-state ~m ~name s#)))
 
 (defmacro defevent
-  [sm name params & body]
-  `(waltz.state/add-event ~sm ~name (fn ~params
+  [m name params & body]
+  `(waltz.state/add-event ~m ~name (fn ~params
                                       ~@body)))
 
-(defmacro in [sm & body]
+(defmacro in [m & body]
   (if (second body)
-    `(waltz.state/in* ~sm (fn ~@body))
-    `(waltz.state/in* ~sm ~@body)))
+    `(waltz.state/update-in ~m [:in] (fn ~@body))
+    `(waltz.state/update-in ~m [:in] ~@body)))
 
-(defmacro out [sm & body]
+(defmacro out [m & body]
   (if (second body)
-    `(waltz.state/out* ~sm (fn ~@body))
-    `(waltz.state/out* ~sm ~@body)))
+    `(waltz.state/update-in ~m [:out] (fn ~@body))
+    `(waltz.state/update-in ~m [:out] ~@body)))

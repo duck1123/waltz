@@ -13,21 +13,16 @@
     v
     [v]))
 
-(defn state* []
-  {:in []
-   :out []
-   :constraints []})
-
-(defn get-in-sm [[state _] ks]
+(defn get-in-sm [{:keys [state]} ks]
   (get-in @state ks))
 
 (defn get-name [sm]
   (get-in-sm sm [:name]))
 
-(defn assoc-sm [[state _] ks v]
+(defn assoc-sm [{:keys [state]} ks v]
   (swap! state #(assoc-in % ks v)))
 
-(defn update-sm [[state _] & fntail]
+(defn update-sm [{:keys [state]} & fntail]
   (swap! state #(apply update-in % fntail)))
 
 (defn current [sm]
@@ -48,25 +43,12 @@
 (defn add-event [sm name v]
   (assoc-sm sm [:events name] v))
 
-(defn in* [state fn]
-  (update-in state [:in] conj fn))
-
-(defn out* [state fn]
-  (update-in state [:out] conj fn))
-
-(defn constraint [state fn]
-  (update-in state [:constraint] conj fn))
-
-(defn can-transition? [sm state]
-  (let [trans (get-in-sm sm [:states state :constraints])]
-    (if trans
-      (every? #(% state) trans)
-      true)))
-
-(defn set-debug [sm dbg]
-  (assoc-sm sm :debug dbg))
+(defn constraint [m fn]
+  (update-in m [:constraint] conj fn))
 
 ;;; Public API
+
+(defrecord StateMachine [state machine])
 
 (def ^{:private true
        :doc "A global registry of state machines."}
@@ -76,11 +58,11 @@
   "Returns a registered state machine for a given name."
   (@registry n))
 
-(defn machine [n]
+(defn machine [n & {:keys [debug] :or {:debug true}}]
   "Create an abstract state machine."
   {:pre [(keyword? n)
          (nil? (@registry n))]}
-  (let [m (atom {:debug true
+  (let [m (atom {:debug debug
                  :name (name n)
                  :states {}
                  :events {}})]
@@ -89,7 +71,7 @@
 
 (defn init [m]
   "Create an instance of an abstract state machine."
-  ([(atom {:current #{}}) m]))
+  (StateMachine. (atom {:current #{}}) m))
 
 (defn trigger [sm ts & context]
   "Trigger a given event in a state machine."
@@ -99,7 +81,7 @@
         (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
 
 
-(defn watch [[state _] f]
+(defn watch [{:keys [state]} f]
   "Watch state changes in a given machine instance."
   (add-watch state :change
              (fn [_ref _key old new]
@@ -107,9 +89,15 @@
                (when (= (:current old) (:current new))
                  (f old new)))))
 
-(defn unwatch [[state _]]
+(defn unwatch [{:keys [state]}]
   "Remove state changes watch from a given machine instance."
   (remove-watch state :change))
+
+(defn can-transition? [sm state]
+  (let [trans (get-in-sm sm [:states state :constraints])]
+    (if trans
+      (every? #(% state) trans)
+      true)))
 
 (defn set [sm states & context]
   "Transition the state machine through a given list of states."
