@@ -71,6 +71,13 @@
   "Returns a registered state machine for a given name."
   (@registry n))
 
+
+(defn clone [sm & initial]
+  "Clone a state machine, resetting all internal state."
+  (assoc sm :state
+         ;; Hook-in any additional options given.
+         (atom (assoc initial :current #{}))))
+
 (defn machine [n & {:keys [debug] :or {debug true}}]
   "Create a new named state machine."
   {:pre [(keyword? n)
@@ -82,12 +89,6 @@
         sm (clone (StateMachine. nil m))]
     (swap! registry assoc n sm)
     sm))
-
-(defn clone [sm & initial]
-  "Clone a state machine, resetting all internal state."
-  (assoc sm :state
-         ;; Hook-in any additional options given.
-         (atom (assoc initial :current #{}))))
 
 (defn watch [{:keys [state]} f]
   "Watch state changes in a given machine instance."
