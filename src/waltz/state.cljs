@@ -88,13 +88,6 @@
   "Clone a state machine, resetting all internal state."
   (assoc sm :state (atom {})))
 
-(defn trigger [sm ts & context]
-  "Trigger a given event in a state machine."
-  (doseq [trans (->coll ts)]
-    (when-let [t (get-in-sm sm [:events trans])]
-      (let [res (apply t (conj sm context))]
-        (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
-
 (defn watch [{:keys [state]} f]
   "Watch state changes in a given machine instance."
   (add-watch state :change
@@ -107,17 +100,24 @@
   "Remove state changes watch from a given machine instance."
   (remove-watch state :change))
 
-(defn can-transition? [sm state]
-  (let [trans (get-in-sm sm [:states state :constraints])]
+(defn can-transition? [{:keys [machine]} state]
+  (let [trans (get-in @machine [:states state :constraints])]
     (if trans
       (every? #(% state) trans)
       true)))
 
-(defn set [sm states & context]
+(defn trigger [{:keys [machine] :as sm} ts & context]
+  "Trigger a given event in a state machine."
+  (doseq [trans (->coll ts)]
+    (when-let [t (get-in @machine [:events trans])]
+      (let [res (apply t (conj sm context))]
+        (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
+
+(defn set [{:keys [machine] :as sm} states & context]
   "Transition the state machine through a given list of states."
   (doseq [state (->coll states)]
     (when (can-transition? sm state)
-      (let [cur-in (get-in-sm sm [:states state :in])]
+      (let [cur-in (get-in @machine [:states state :in])]
         (update-sm sm [:current] conj state)
         (debug-log sm "(set " (str state) ") -> " (pr-str (current sm)))
         (when (seq cur-in)
@@ -126,11 +126,11 @@
             (apply func (conj sm context)))))))
   sm)
 
-(defn unset [sm states & context]
+(defn unset [{:keys [machine] :as sm} states & context]
   "Transition the state machine *from* a given list of states."
   (doseq [state (->coll states)]
     (when (in? sm state)
-      (let [cur-out (get-in-sm sm [:states state :out])]
+      (let [cur-out (get-in @machine [:states state :out])]
         (update-sm sm [:current] disj state)
         (debug-log sm "(unset " (str state ")") " -> " (pr-str (current sm)))
         (when (seq cur-out)
