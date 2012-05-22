@@ -71,7 +71,7 @@
   "Returns a registered state machine for a given name."
   (@registry n))
 
-(defn machine [n & {:keys [debug] :or {:debug true}}]
+(defn machine [n & {:keys [debug] :or {debug true}}]
   "Create a new named state machine."
   {:pre [(keyword? n)
          (nil? (@registry n))]}
