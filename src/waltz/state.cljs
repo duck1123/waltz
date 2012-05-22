@@ -88,9 +88,8 @@
   "Trigger a given event in a state machine."
   (doseq [trans (->coll ts)]
     (when-let [t (get-in-sm sm [:events trans])]
-      (let [res (apply t context)]
+      (let [res (apply t (conj sm context))]
         (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
-
 
 (defn watch [{:keys [state]} f]
   "Watch state changes in a given machine instance."
@@ -120,7 +119,7 @@
         (when (seq cur-in)
           (debug-log sm "(in " (str state) ")")
           (doseq [func cur-in]
-            (apply func context))))))
+            (apply func (conj sm context)))))))
   sm)
 
 (defn unset [sm states & context]
@@ -133,7 +132,7 @@
         (when (seq cur-out)
           (debug-log sm "(out " (str state) ")")
           (doseq [func cur-out]
-            (apply func context))))))
+            (apply func (conj sm context)))))))
   sm)
 
 (defn set-ex [sm to-unset to-set & context]
