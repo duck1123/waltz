@@ -84,7 +84,8 @@
                  :name (name n)
                  :states {}
                  :events {}})]
-    (swap! registry assoc n m)))
+    (swap! registry assoc n m)
+    m))
 
 (defn init [m]
   "Create an instance of an abstract state machine."
