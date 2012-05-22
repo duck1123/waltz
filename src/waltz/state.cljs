@@ -97,6 +97,19 @@
       (let [res (apply t context)]
         (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
 
+
+(defn watch [[state _] f]
+  "Watch state changes in a given machine instance."
+  (add-watch state :change
+             (fn [_ref _key old new]
+               ;; Only trigger the callback on :current state changes.
+               (when (= (:current old) (:current new))
+                 (f old new)))))
+
+(defn unwatch [[state _]]
+  "Remove state changes watch from a given machine instance."
+  (remove-watch state :change))
+
 (defn set [sm states & context]
   "Transition the state machine through a given list of states."
   (doseq [state (->coll states)]
