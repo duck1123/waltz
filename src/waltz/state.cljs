@@ -1,9 +1,6 @@
 (ns waltz.state
   (:refer-clojure :exclude [set]))
 
-(def ^{:doc "A global registry of state machines."}
-  registry (atom {}))
-
 (declare get-name)
 
 (defn debug-log [sm v & vs]
@@ -21,23 +18,23 @@
    :out []
    :constraints []})
 
-(defn get-in-sm [sm ks]
-  (get-in @sm ks))
+(defn get-in-sm [[state _] ks]
+  (get-in @state ks))
 
 (defn get-name [sm]
   (get-in-sm sm [:name]))
 
-(defn assoc-sm [sm ks v]
-  (swap! sm #(assoc-in % ks v)))
+(defn assoc-sm [[state _] ks v]
+  (swap! state #(assoc-in % ks v)))
 
-(defn update-sm [sm & fntail]
-  (swap! sm #(apply update-in % fntail)))
+(defn update-sm [[state _] & fntail]
+  (swap! state #(apply update-in % fntail)))
 
 (defn current [sm]
   (get-in-sm sm [:current]))
 
 (defn in? [sm state]
-  (= (current sm) state))
+  ((current sm) state))
 
 (defn has-state? [sm state]
   (get-in-sm sm [:states state]))
@@ -71,19 +68,27 @@
 
 ;;; Public API
 
+(def ^{:private true
+       :doc "A global registry of state machines."}
+  registry (atom {}))
+
 (defn by-name [n]
   "Returns a registered state machine for a given name."
   (@registry n))
 
 (defn machine [n]
-  "Create an abstract finite state machine."
+  "Create an abstract state machine."
   {:pre [(keyword? n)
          (nil? (@registry n))]}
-  (let [sm (atom {:debug true
-                  :name (name n)
-                  :states {}
-                  :events {}})]
-    (swap! registry assoc n sm)))
+  (let [m (atom {:debug true
+                 :name (name n)
+                 :states {}
+                 :events {}})]
+    (swap! registry assoc n m)))
+
+(defn init [m]
+  "Create an instance of an abstract state machine."
+  ([(atom {:current #{}}) m]))
 
 (defn trigger [sm ts & context]
   "Trigger a given event in a state machine."
@@ -117,7 +122,6 @@
           (doseq [func cur-out]
             (apply func context))))))
   sm)
-
 
 (defn set-ex [sm to-unset to-set & context]
   "Set a state machine to an *exclusive* state, unsetting any current
