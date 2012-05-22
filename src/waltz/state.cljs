@@ -69,14 +69,14 @@
          ;; Hook-in any additional options given.
          (atom (assoc initial :current #{}))))
 
-(defn machine [n & {:keys [debug] :or {debug true}}]
+(defn machine [n & [initial {:keys [debug] :or {debug true}}]]
   "Create a new named state machine."
   {:pre [(keyword? n)]}
   (let [m (atom {:debug debug
                  :name (name n)
                  :states {}
                  :events {}})]
-        (clone (StateMachine. nil m))))
+        (clone (StateMachine. nil m) initial)))
 
 (defn watch [{:keys [state] :as sm} f]
   "Watch state changes in a given machine instance."
