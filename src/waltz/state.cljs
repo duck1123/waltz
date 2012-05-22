@@ -71,8 +71,7 @@
   "Returns a registered state machine for a given name."
   (@registry n))
 
-
-(defn clone [sm & initial]
+(defn clone [sm & [initial]]
   "Clone a state machine, resetting all internal state."
   (assoc sm :state
          ;; Hook-in any additional options given.
