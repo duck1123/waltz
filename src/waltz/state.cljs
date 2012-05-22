@@ -89,17 +89,19 @@
     (swap! registry assoc n sm)
     sm))
 
-(defn watch [{:keys [state]} f]
+(defn watch [{:keys [state] :as sm} f]
   "Watch state changes in a given machine instance."
   (add-watch state :change
              (fn [_ref _key old new]
                ;; Only trigger the callback on :current state changes.
                (when (not= (:current old) (:current new))
-                 (f old new)))))
+                 (f old new))))
+  sm)
 
-(defn unwatch [{:keys [state]}]
+(defn unwatch [{:keys [state] :as sm}]
   "Remove state changes watch from a given machine instance."
-  (remove-watch state :change))
+  (remove-watch state :change)
+  sm)
 
 (defn can-transition? [{:keys [machine]} state]
   (let [trans (get-in @machine [:states state :constraints])]
