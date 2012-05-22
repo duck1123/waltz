@@ -1,16 +1,26 @@
 (ns waltz.state
   (:refer-clojure :exclude [set]))
 
-(declare get-name)
+
+;;; Internal API
 
 (defn state* []
   {:in []
    :out []
    :constraints []})
 
+(defn in* [state fn]
+  (update-in state [:in] conj fn))
+
+(defn out* [state fn]
+  (update-in state [:out] conj fn))
+
+(defn constraint [m fn]
+  (update-in m [:constraint] conj fn))
+
 (defn debug-log [{:keys [machine] :as sm} v & vs]
   (when (and js/console (@machine :debug))
-    (let [s (apply str (get-name sm) " :: " v vs)]
+    (let [s (apply str (@machine :name) " :: " v vs)]
       (.log js/console s))))
 
 (defn ->coll [v]
@@ -18,11 +28,11 @@
     v
     [v]))
 
+
+;;; Low-level public API
+
 (defn get-in-sm [{:keys [state]} ks]
   (get-in @state ks))
-
-(defn get-name [sm]
-  (get-in-sm sm [:name]))
 
 (defn assoc-sm [{:keys [state]} ks v]
   (swap! state #(assoc-in % ks v)))
@@ -36,26 +46,18 @@
 (defn in? [sm state]
   ((current sm) state))
 
-(defn has-state? [sm state]
-  (get-in-sm sm [:states state]))
+(defn has-state? [{:keys [machine]} state]
+  (get-in @machine [:states state]))
 
-(defn has-event? [sm trans]
-  (get-in-sm sm [:events trans]))
+(defn has-event? [{:keys [machine]} event]
+  (get-in @machine [:events event]))
 
-(defn add-state [sm name v]
-  (assoc-sm sm [:states name] v))
+(defn add-state [{:keys [machine]} name v]
+  (swap! machine #(assoc-in % [:states name] v)))
 
-(defn add-event [sm name v]
-  (assoc-sm sm [:events name] v))
+(defn add-event [{:keys [machine]} name v]
+  (swap! machine #(assoc-in % [:events name] v)))
 
-(defn in* [state fn]
-  (update-in state [:in] conj fn))
-
-(defn out* [state fn]
-  (update-in state [:out] conj fn))
-
-(defn constraint [m fn]
-  (update-in m [:constraint] conj fn))
 
 ;;; Public API
 
@@ -70,19 +72,21 @@
   (@registry n))
 
 (defn machine [n & {:keys [debug] :or {:debug true}}]
-  "Create an abstract state machine."
+  "Create a new named state machine."
   {:pre [(keyword? n)
          (nil? (@registry n))]}
   (let [m (atom {:debug debug
                  :name (name n)
                  :states {}
-                 :events {}})]
-    (swap! registry assoc n m)
-    m))
+                 :events {}})
+        s (atom {})
+        sm (StateMachine. s m)]
+    (swap! registry assoc n sm)
+    sm))
 
-(defn init [m]
-  "Create an instance of an abstract state machine."
-  (StateMachine. (atom {:current #{}}) m))
+(defn clone [sm]
+  "Clone a state machine, resetting all internal state."
+  (assoc sm :state (atom {})))
 
 (defn trigger [sm ts & context]
   "Trigger a given event in a state machine."
