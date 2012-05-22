@@ -79,14 +79,13 @@
                  :name (name n)
                  :states {}
                  :events {}})
-        s (atom {})
-        sm (StateMachine. s m)]
+        sm (clone (StateMachine. nil m))]
     (swap! registry assoc n sm)
     sm))
 
 (defn clone [sm]
   "Clone a state machine, resetting all internal state."
-  (assoc sm :state (atom {})))
+  (assoc sm :state (atom {:current #{}})))
 
 (defn watch [{:keys [state]} f]
   "Watch state changes in a given machine instance."
