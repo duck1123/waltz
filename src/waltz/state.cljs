@@ -110,7 +110,7 @@
   "Trigger a given event in a state machine."
   (doseq [trans (->coll ts)]
     (when-let [t (get-in @machine [:events trans])]
-      (let [res (apply t (conj sm context))]
+      (let [res (apply t (conj context sm))]
         (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
 
 (defn set [{:keys [machine] :as sm} states & context]
@@ -123,7 +123,7 @@
         (when (seq cur-in)
           (debug-log sm "(in " (str state) ")")
           (doseq [func cur-in]
-            (apply func (conj sm context)))))))
+            (apply func (conj context sm)))))))
   sm)
 
 (defn unset [{:keys [machine] :as sm} states & context]
@@ -136,7 +136,7 @@
         (when (seq cur-out)
           (debug-log sm "(out " (str state) ")")
           (doseq [func cur-out]
-            (apply func (conj sm context)))))))
+            (apply func (conj context sm)))))))
   sm)
 
 (defn set-ex [sm to-unset to-set & context]
