@@ -8,8 +8,8 @@
    :out []
    :constraints []})
 
-(defn debug-log [sm v & vs]
-  (when (and js/console (@sm :debug))
+(defn debug-log [{:keys [machine] :as sm} v & vs]
+  (when (and js/console (@machine :debug))
     (let [s (apply str (get-name sm) " :: " v vs)]
       (.log js/console s))))
 
