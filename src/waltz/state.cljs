@@ -31,14 +31,14 @@
 
 ;;; Low-level public API
 
-(defn get-in-sm [{:keys [state]} ks]
-  (get-in @state ks))
+(defn get-in-sm [{:keys [env]} ks]
+  (get-in @env ks))
 
-(defn assoc-sm [{:keys [state]} ks v]
-  (swap! state #(assoc-in % ks v)))
+(defn assoc-sm [{:keys [env]} ks v]
+  (swap! env #(assoc-in % ks v)))
 
-(defn update-sm [{:keys [state]} & fntail]
-  (swap! state #(apply update-in % fntail)))
+(defn update-sm [{:keys [env]} & fntail]
+  (swap! env #(apply update-in % fntail)))
 
 (defn current [sm]
   (get-in-sm sm [:current]))
@@ -61,35 +61,39 @@
 
 ;;; Public API
 
-(defrecord StateMachine [state machine])
+(defrecord StateMachine [env machine]
+  "Each state machine is defined by the actual 'machine', a
+container for states and transitions and 'env' -- variable
+part of the machine, holding a set of states the machine is in.")
 
-(defn clone [sm & [initial]]
-  "Clone a state machine, resetting all internal state."
+(defn clone [sm & [env]]
+  "Clone a state machine, resetting the environment to provided value."
+  {:pre [(associative? env)]}
   (assoc sm :state
          ;; Hook-in any additional options given.
-         (atom (assoc initial :current #{}))))
+         (atom (assoc env :current #{}))))
 
-(defn machine [n & [initial {:keys [debug] :or {debug true}}]]
-  "Create a new named state machine."
-  {:pre [(keyword? n)]}
+(defn machine [n & [env {:keys [debug] :or {debug true}}]]
+  "Create a new named state machine, optionally initializing the environment."
+  {:pre [(associative? env)]}
   (let [m (atom {:debug debug
                  :name (name n)
                  :states {}
                  :events {}})]
-        (clone (StateMachine. nil m) initial)))
+        (clone (StateMachine. nil m) env)))
 
-(defn watch [{:keys [state] :as sm} f]
-  "Watch state changes in a given machine instance."
-  (add-watch state :change
+(defn watch [{:keys [env] :as sm} f]
+  "Watch environment changes in a given state machine."
+  (add-watch env :change
              (fn [_ref _key old new]
-               ;; Only trigger the callback on :current state changes.
+               ;; Only trigger the callback on :current env changes.
                (when (not= (:current old) (:current new))
                  (f old new))))
   sm)
 
-(defn unwatch [{:keys [state] :as sm}]
-  "Remove state changes watch from a given machine instance."
-  (remove-watch state :change)
+(defn unwatch [{:keys [env] :as sm}]
+  "Remove env. changes watch from a given state machine."
+  (remove-watch env :change)
   sm)
 
 (defn can-transition? [{:keys [machine]} state]
@@ -130,9 +134,3 @@
           (doseq [func cur-out]
             (apply func (conj context sm)))))))
   sm)
-
-(defn set-ex [sm to-unset to-set & context]
-  "Set a state machine to an *exclusive* state, unsetting any current
-state it might be in."
-  (apply unset sm to-unset context)
-  (apply set sm to-set context))
