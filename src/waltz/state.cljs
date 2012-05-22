@@ -92,7 +92,7 @@
   (add-watch state :change
              (fn [_ref _key old new]
                ;; Only trigger the callback on :current state changes.
-               (when (= (:current old) (:current new))
+               (when (not= (:current old) (:current new))
                  (f old new)))))
 
 (defn unwatch [{:keys [state]}]
