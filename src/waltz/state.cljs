@@ -3,6 +3,11 @@
 
 (declare get-name)
 
+(defn state* []
+  {:in []
+   :out []
+   :constraints []})
+
 (defn debug-log [sm v & vs]
   (when (and js/console (@sm :debug))
     (let [s (apply str (get-name sm) " :: " v vs)]
@@ -42,6 +47,12 @@
 
 (defn add-event [sm name v]
   (assoc-sm sm [:events name] v))
+
+(defn in* [state fn]
+  (update-in state [:in] conj fn))
+
+(defn out* [state fn]
+  (update-in state [:out] conj fn))
 
 (defn constraint [m fn]
   (update-in m [:constraint] conj fn))
