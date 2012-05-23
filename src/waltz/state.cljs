@@ -135,3 +135,8 @@ part of the machine, holding a set of states the machine is in."}
           (doseq [func cur-out]
             (apply func (conj context sm)))))))
   sm)
+
+(defn transition [sm to-unset to-set & context]
+  (when (in? sm to-unset)
+    (apply unset sm to-unset context)
+    (apply set sm to-set context)))
