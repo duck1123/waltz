@@ -31,20 +31,35 @@
 
 ;;; Low-level public API
 
+;; Functions, operating on state machine environment.
+
 (defn get-in-sm [{:keys [env]} ks]
+  "Fetch a possibly nested value from state machine environment."
   (get-in @env ks))
 
 (defn assoc-sm [{:keys [env]} ks v]
+  "Associate a possibly nested value in state machine environment."
   (swap! env #(assoc-in % ks v)))
 
 (defn update-sm [{:keys [env]} & fntail]
+  "Update a possibly nested value in state machine environment."
   (swap! env #(apply update-in % fntail)))
 
 (defn current [sm]
+  "Fetch a set of current states the machine is in."
   (get-in-sm sm [:current]))
 
 (defn in? [sm state]
+  "Validate if a state machine is in the given state."
   ((current sm) state))
+
+;; Functions, operating on state machine structure.
+
+(defn can-transition? [{:keys [machine]} state]
+  (let [trans (get-in @machine [:states state :constraints])]
+    (if trans
+      (every? #(% state) trans)
+      true)))
 
 (defn has-state? [{:keys [machine]} state]
   (get-in @machine [:states state]))
@@ -97,12 +112,6 @@ part of the machine, holding a set of states the machine is in."}
   (remove-watch env :change)
   sm)
 
-(defn can-transition? [{:keys [machine]} state]
-  (let [trans (get-in @machine [:states state :constraints])]
-    (if trans
-      (every? #(% state) trans)
-      true)))
-
 (defn trigger [{:keys [machine] :as sm} ts & context]
   "Trigger a given event in a state machine."
   (doseq [trans (->coll ts)]
@@ -137,6 +146,7 @@ part of the machine, holding a set of states the machine is in."}
   sm)
 
 (defn transition [sm to-unset to-set & context]
+  "Transition the state machine *between* two given states."
   (when (in? sm to-unset)
     (apply unset sm to-unset context)
     (apply set sm to-set context)))
