@@ -61,10 +61,11 @@
 
 ;;; Public API
 
-(defrecord StateMachine [env machine]
-  "Each state machine is defined by the actual 'machine', a
-container for states and transitions and 'env' -- variable
-part of the machine, holding a set of states the machine is in.")
+(defrecord StateMachine
+    ^{:doc "Each state machine is defined by the actual 'machine',
+a container for states and transitions and 'env' -- variable
+part of the machine, holding a set of states the machine is in."}
+  [env machine])
 
 (defn clone [sm & [env]]
   "Clone a state machine, resetting the environment to provided value."
