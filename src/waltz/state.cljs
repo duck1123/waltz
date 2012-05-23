@@ -70,7 +70,7 @@ part of the machine, holding a set of states the machine is in."}
 (defn clone [sm & [env]]
   "Clone a state machine, resetting the environment to provided value."
   {:pre [(associative? env)]}
-  (assoc sm :state
+  (assoc sm :env
          ;; Hook-in any additional options given.
          (atom (assoc env :current #{}))))
 
