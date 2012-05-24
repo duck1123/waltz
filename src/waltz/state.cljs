@@ -23,11 +23,6 @@
     (let [s (apply str (@machine :name) " :: " v vs)]
       (.log js/console s))))
 
-(defn ->coll [v]
-  (if (coll? v)
-    v
-    [v]))
-
 
 ;;; Low-level public API
 
@@ -52,6 +47,11 @@
 (defn in? [sm state]
   "Validate if a state machine is in the given state."
   ((current sm) state))
+
+(defn not-in? [sm state]
+  "Validate if a state machine is not in the given state."
+  (not (in? sm state)))
+
 
 ;; Functions, operating on state machine structure.
 
@@ -108,41 +108,38 @@ part of the machine, holding a set of states the machine is in."}
   (remove-watch env :change)
   sm)
 
-(defn trigger [{:keys [machine] :as sm} ts & context]
+(defn trigger [{:keys [machine] :as sm} event & context]
   "Trigger a given event in a state machine."
-  (doseq [trans (->coll ts)]
-    (when-let [t (get-in @machine [:events trans])]
-      (let [res (apply t (conj context sm))]
-        (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context))))))
+  (when-let [func (get-in @machine [:events event])]
+    (let [res (apply func (conj context sm))]
+      (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context)))))
 
-(defn set [{:keys [machine] :as sm} states & context]
-  "Transition the state machine through a given list of states."
-  (doseq [state (->coll states)]
-    (when (can-transition? sm state)
-      (let [cur-in (get-in @machine [:states state :in])]
-        (update-sm sm [:current] conj state)
-        (debug-log sm "(set " (str state) ") -> " (pr-str (current sm)))
-        (when (seq cur-in)
-          (debug-log sm "(in " (str state) ")")
-          (doseq [func cur-in]
-            (apply func (conj context sm)))))))
+(defn set [{:keys [machine] :as sm} state & context]
+  "Transition the state machine *to* a given state."
+  (when (and (can-transition? sm state)
+             (not-in? sm state))
+    (let [cur-in (get-in @machine [:states state :in])]
+      (update-sm sm [:current] conj state)
+      (debug-log sm "(set " (str state) ") -> " (pr-str (current sm)))
+      (when (seq cur-in)
+        (debug-log sm "(in " (str state) ")")
+        (doseq [func cur-in]
+          (apply func (conj context sm))))))
   sm)
 
-(defn unset [{:keys [machine] :as sm} states & context]
-  "Transition the state machine *from* a given list of states."
-  (doseq [state (->coll states)]
-    (when (in? sm state)
-      (let [cur-out (get-in @machine [:states state :out])]
-        (update-sm sm [:current] disj state)
-        (debug-log sm "(unset " (str state ")") " -> " (pr-str (current sm)))
-        (when (seq cur-out)
-          (debug-log sm "(out " (str state) ")")
-          (doseq [func cur-out]
-            (apply func (conj context sm)))))))
+(defn unset [{:keys [machine] :as sm} state & context]
+  "Transition the state machine *from* a given state."
+  (when (in? sm state)
+    (let [cur-out (get-in @machine [:states state :out])]
+      (update-sm sm [:current] disj state)
+      (debug-log sm "(unset " (str state ")") " -> " (pr-str (current sm)))
+      (when (seq cur-out)
+        (debug-log sm "(out " (str state) ")")
+        (doseq [func cur-out]
+          (apply func (conj context sm))))))
   sm)
 
 (defn transition [sm to-unset to-set & context]
   "Transition the state machine *between* two given states."
-  (when (in? sm to-unset)
-    (apply unset sm to-unset context)
-    (apply set sm to-set context)))
+  (apply unset sm to-unset context)
+  (apply set sm to-set context))
