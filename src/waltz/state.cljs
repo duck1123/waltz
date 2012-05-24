@@ -100,11 +100,7 @@ part of the machine, holding a set of states the machine is in."}
 
 (defn watch [{:keys [env] :as sm} f]
   "Watch environment changes in a given state machine."
-  (add-watch env :change
-             (fn [_ref _key old new]
-               ;; Only trigger the callback on :current env changes.
-               (when (not= (:current old) (:current new))
-                 (f old new))))
+  (add-watch env :change (fn [_ref _key old new] (f old new)))
   sm)
 
 (defn unwatch [{:keys [env] :as sm}]
