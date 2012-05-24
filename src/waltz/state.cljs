@@ -1,5 +1,6 @@
 (ns waltz.state
-  (:refer-clojure :exclude [set]))
+  (:refer-clojure :exclude [set])
+  (:use [lolg :only (get-logger fine)]))
 
 
 ;;; Internal API
@@ -18,11 +19,10 @@
 (defn constraint [m fn]
   (update-in m [:constraint] conj fn))
 
-(defn debug-log [{:keys [machine] :as sm} v & vs]
-  (when (and js/console (@machine :debug))
-    (let [s (apply str (@machine :name) " :: " v vs)]
-      (.log js/console s))))
+(def ^:private logger (get-logger "waltz"))
 
+(defn- debug-log [{:keys [machine] :as sm} v & vs]
+  (fine logger (apply str (:name @machine) " :: " v vs)))
 
 ;;; Low-level public API
 
@@ -92,8 +92,7 @@ part of the machine, holding a set of states the machine is in."}
 (defn machine [n & [env {:keys [debug] :or {debug true}}]]
   "Create a new named state machine, optionally initializing the environment."
   {:pre [(associative? env)]}
-  (let [m (atom {:debug debug
-                 :name (name n)
+  (let [m (atom {:name (name n)
                  :states {}
                  :events {}})]
         (clone (StateMachine. nil m) env)))
@@ -108,9 +107,9 @@ part of the machine, holding a set of states the machine is in."}
   (remove-watch env :change)
   sm)
 
-(defn trigger [{:keys [machine] :as sm} event & context]
+(defn trigger [{:keys [machine] :as sm} trans & context]
   "Trigger a given event in a state machine."
-  (when-let [func (get-in @machine [:events event])]
+  (when-let [func (get-in @machine [:events trans])]
     (let [res (apply func (conj context sm))]
       (debug-log sm "(trans " (str trans) ") -> " (boolean res) " :: context " (pr-str context)))))
 
