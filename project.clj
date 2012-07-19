@@ -1,4 +1,4 @@
-(defproject waltz "0.1.1"
+(defproject net.kronkltd/waltz "0.1.2-SNAPSHOT"
   :description "A ClojureScript library to keep your state in step"
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [lolg "0.1.0-SNAPSHOT"]]
