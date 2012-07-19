@@ -1,6 +1,6 @@
 (ns waltz.state
   (:refer-clojure :exclude [set])
-  (:use [lolg :only (get-logger fine)]))
+  (:use [lolg :only [get-logger fine]]))
 
 
 ;;; Internal API
