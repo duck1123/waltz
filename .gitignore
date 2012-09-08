@@ -1,3 +1,6 @@
 lib
 out
 .lein*
+pom.xml
+target
+doc
